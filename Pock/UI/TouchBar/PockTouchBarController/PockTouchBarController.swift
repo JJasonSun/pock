@@ -186,10 +186,10 @@ internal class PockTouchBarController: PKTouchBarMouseController {
 	}
     
     private func screenEdgeController(_ controller: PKScreenEdgeController, mouseScrollWithDelta delta: CGFloat, atLocation location: NSPoint, in view: NSView, event: NSEvent) {
+        // PockKit only declares the no-event overload; newer Swift rejects the
+        // extra `event:` argument on optional protocol methods.
         mouseDelegates.forEach({
-            if $0.screenEdgeController?(controller, mouseScrollWithDelta: delta, atLocation: location, in: view, event: event) == nil {
-                $0.screenEdgeController?(controller, mouseScrollWithDelta: delta, atLocation: location, in: view)
-            }
+            $0.screenEdgeController?(controller, mouseScrollWithDelta: delta, atLocation: location, in: view)
         })
     }
 	
