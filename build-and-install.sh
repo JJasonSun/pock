@@ -56,13 +56,8 @@ echo "==> Source fix present (EmptyTouchBarController.button(at:))"
 
 # --- CocoaPods ----------------------------------------------------------------
 
-if [[ ! -d Pods ]]; then
-    echo "==> pod install"
-    pod install
-else
-    echo "==> Pods present, running pod install to refresh"
-    pod install
-fi
+echo "==> pod install (also refreshes existing Pods)"
+pod install
 
 # --- Build --------------------------------------------------------------------
 
