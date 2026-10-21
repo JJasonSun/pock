@@ -67,9 +67,8 @@ mkdir -p "$DERIVED"
 
 echo "==> Building Pock (Release, ad-hoc signed)"
 # CODE_SIGN_IDENTITY=- : ad-hoc, matching the previous Homebrew install.
-# The project's own Run Script copies the product to /Applications; we disable
-# that by building to a custom DSTROOT-style path and installing ourselves so
-# the script is idempotent and reviewable.
+# The project's Run Script no longer copies to /Applications; installing here
+# keeps the build idempotent and lets us back up the previous app first.
 xcodebuild \
     -workspace Pock.xcworkspace \
     -scheme Pock \
