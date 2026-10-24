@@ -1,6 +1,6 @@
 #!/bin/bash
-# Build Pock from this local fork (includes the macOS 26 EmptyTouchBarController
-# SIGTRAP fix) and install it to /Applications, replacing whatever is there.
+# Build Pock from source and install it to /Applications, replacing whatever
+# is already there (a backup of the previous app is kept in build/).
 #
 # Prerequisites:
 #   - Full Xcode (xcode-select -p must point at Xcode.app, not CommandLineTools)
@@ -10,7 +10,7 @@
 # Usage:
 #   ./build-and-install.sh              # build Release + install
 #   ./build-and-install.sh --build-only # leave the product in build/
-#   HTTPS_PROXY=http://127.0.0.1:7897 ./build-and-install.sh
+#   HTTPS_PROXY=http://proxy.example:8080 ./build-and-install.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -27,7 +27,10 @@ die() { echo "Error: $*" >&2; exit 1; }
 
 DEV_DIR="$(xcode-select -p 2>/dev/null || true)"
 if [[ -z "$DEV_DIR" || "$DEV_DIR" == *CommandLineTools* ]]; then
-    die "Full Xcode is required (got: ${DEV_DIR:-none}). Run: xcodes install 26.6 && sudo xcode-select -s /Applications/Xcode-26.6.0.app/Contents/Developer"
+    XCODE_APP="$(ls -d /Applications/Xcode*.app 2>/dev/null | head -1)"
+    [[ -n "$XCODE_APP" ]] && HINT="sudo xcode-select -s ${XCODE_APP}/Contents/Developer" \
+                          || HINT="install Xcode from the App Store, then: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
+    die "Full Xcode is required (xcode-select -p reports '${DEV_DIR:-none}'). $HINT"
 fi
 if ! xcodebuild -version >/dev/null 2>&1; then
     die "xcodebuild is not usable at $DEV_DIR"
@@ -36,7 +39,8 @@ fi
 command -v xcodebuild >/dev/null || die "xcodebuild not found"
 command -v pod >/dev/null || die "CocoaPods not found. Run: brew install cocoapods"
 
-# CocoaPods / git may need the local proxy in this network.
+# Propagate any user-provided proxy settings to the tools spawned below
+# (pod, git) — some of them only read the lowercase variants.
 export HTTPS_PROXY="${HTTPS_PROXY:-}"
 export HTTP_PROXY="${HTTP_PROXY:-}"
 export https_proxy="${HTTPS_PROXY}"
@@ -66,7 +70,8 @@ rm -rf "$DERIVED"
 mkdir -p "$DERIVED"
 
 echo "==> Building Pock (Release, ad-hoc signed)"
-# CODE_SIGN_IDENTITY=- : ad-hoc, matching the previous Homebrew install.
+# CODE_SIGN_IDENTITY=- : ad-hoc signing, so the app runs without a developer
+# account.
 # The project's Run Script no longer copies to /Applications; installing here
 # keeps the build idempotent and lets us back up the previous app first.
 xcodebuild \
@@ -117,6 +122,7 @@ echo "==> Launching Pock"
 open -a Pock
 
 echo "==> Done. Source-built Pock is now at /Applications/Pock.app"
-echo "    Binary-patch backups under patches/ are no longer required for this app."
-echo "    Do NOT install/upgrade Pock via Homebrew — and note that"
-echo "    'brew uninstall --cask pock' deletes /Applications/Pock.app entirely."
+echo "    Previous install (if any) backed up under build/previous-install/."
+echo "    If Pock was previously installed via Homebrew, do not let brew"
+echo "    upgrade it over this build ('brew uninstall --cask pock' would also"
+echo "    delete /Applications/Pock.app)."
